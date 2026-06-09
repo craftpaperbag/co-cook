@@ -1,0 +1,21 @@
+# Secrets / local config — NEVER commit
+.env
+.env.*
+!.env.example
+
+# Local database
+co_cook.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# OS / editor
+.DS_Store
+*.swp

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>co-cook — AIメニュー提案</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+
+    <header>
+      <h1 class="text-2xl font-bold text-slate-900">🍳 co-cook</h1>
+      <p class="text-sm text-slate-500">我が家の好みを学習する、AIメニュー提案アプリ</p>
+    </header>
+
+    {% if flash %}
+    <div class="rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 px-4 py-3 text-sm">
+      {{ flash }}
+    </div>
+    {% endif %}
+
+    <!-- 1. メニュー提案フォーム -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <h2 class="text-lg font-semibold mb-3">今日の気分・条件</h2>
+      <form action="/propose" method="post" class="space-y-3">
+        <textarea name="context" rows="3" required
+          placeholder="例: さっぱりしたものが食べたい。残り物の鶏むね肉を使いたい。"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+        <button type="submit"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg">
+          メニューを提案してもらう
+        </button>
+      </form>
+    </section>
+
+    <!-- 2. 未処理ログ + フィードバック -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">未処理のログ（フィードバック待ち）</h2>
+        <span class="text-xs text-slate-400">{{ unprocessed_logs|length }} 件</span>
+      </div>
+
+      {% if not unprocessed_logs %}
+      <p class="text-sm text-slate-400">まだ提案がありません。</p>
+      {% endif %}
+
+      {% for log in unprocessed_logs %}
+      <article class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="text-xs text-slate-400">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+        <div>
+          <div class="text-xs font-semibold text-slate-500 mb-1">条件</div>
+          <p class="text-sm whitespace-pre-wrap">{{ log.context }}</p>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-slate-500 mb-1">AIの提案</div>
+          <p class="text-sm whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{{ log.proposed_menu }}</p>
+        </div>
+
+        {% if log.feedback %}
+        <div class="text-sm text-emerald-700">
+          <span class="font-semibold">フィードバック済:</span> {{ log.feedback }}
+        </div>
+        {% endif %}
+
+        <form action="/feedback/{{ log.id }}" method="post" class="space-y-2">
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" name="feedback" value="👍 美味しかった / また食べたい"
+              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">👍 美味しかった</button>
+            <button type="submit" name="feedback" value="重すぎた / もっと軽いものがよい"
+              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">😮‍💨 重すぎた</button>
+            <button type="submit" name="feedback" value="味が好みでなかった"
+              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">😕 好みでない</button>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" name="feedback"
+              placeholder="自由にフィードバックを入力…"
+              class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            <button type="submit"
+              class="bg-slate-800 hover:bg-slate-900 text-white text-sm px-4 py-2 rounded-lg">送信</button>
+          </div>
+        </form>
+      </article>
+      {% endfor %}
+    </section>
+
+    <!-- 3. 学習（インジェスト） -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <h2 class="text-lg font-semibold mb-2">学習（インジェスト）</h2>
+      <p class="text-sm text-slate-500 mb-3">
+        フィードバック済の未処理ログをまとめて要約・反映し、「我が家の好み」を更新します。
+      </p>
+      <form action="/ingest" method="post">
+        <button type="submit"
+          class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-5 py-2 rounded-lg">
+          🧠 我が家の好みを学習する
+        </button>
+      </form>
+    </section>
+
+    <!-- 我が家の好みのエッセンス -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+      <h2 class="text-lg font-semibold">我が家の好みのエッセンス</h2>
+      {% for key, label in essence_labels.items() %}
+      <div>
+        <div class="text-xs font-semibold text-slate-500 mb-1">{{ label }}</div>
+        <p class="text-sm whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{{ essences[key] or "（まだ学習されていません）" }}</p>
+      </div>
+      {% endfor %}
+    </section>
+
+    <!-- 処理済ログ -->
+    {% if ingested_logs %}
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">処理済のログ</h2>
+      {% for log in ingested_logs %}
+      <article class="bg-white/60 rounded-lg border border-slate-200 p-4 text-sm">
+        <div class="text-xs text-slate-400 mb-1">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} ・ ✅ ingested</div>
+        <div class="text-slate-600 whitespace-pre-wrap">{{ log.context }}</div>
+        {% if log.feedback %}<div class="text-emerald-700 mt-1">FB: {{ log.feedback }}</div>{% endif %}
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+  </div>
+</body>
+</html>
