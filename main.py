@@ -110,6 +110,12 @@ def index(
     return render_index(request, db, flash=flash)
 
 
+# ---- 説明画面（このアプリでできること・仕組み） --------------------------
+@app.get("/about", response_class=HTMLResponse)
+def about(request: Request):
+    return templates.TemplateResponse(request, "about.html", {})
+
+
 # ---- 1. メニュー提案 ------------------------------------------------------
 @app.post("/propose", response_class=HTMLResponse)
 def propose(
