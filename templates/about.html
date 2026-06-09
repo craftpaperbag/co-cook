@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>co-cook とは — 使い方と仕組み</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* index.html と同じデザイントークン（反復＝一貫性のため共有） */
+    :root {
+      --bg:         oklch(0.98 0.006 95);
+      --surface:    oklch(1    0     0);
+      --surface-2:  oklch(0.975 0.006 95);
+      --border:     oklch(0.915 0.008 95);
+      --ink:        oklch(0.30 0.012 95);
+      --ink-muted:  oklch(0.55 0.012 95);
+      --ink-faint:  oklch(0.68 0.010 95);
+      --accent:      oklch(0.55 0.072 155);
+      --accent-strong:oklch(0.47 0.078 155);
+      --accent-fg:   oklch(0.99 0.012 155);
+      --accent-soft: oklch(0.955 0.022 155);
+      --accent-line: oklch(0.86 0.030 155);
+    }
+    body { font-feature-settings: "palt"; }
+    [data-lucide] { display: inline-block; vertical-align: -0.18em; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: "var(--bg)",
+            surface: { DEFAULT: "var(--surface)", 2: "var(--surface-2)" },
+            border: "var(--border)",
+            ink: {
+              DEFAULT: "var(--ink)",
+              muted: "var(--ink-muted)",
+              faint: "var(--ink-faint)",
+            },
+            accent: {
+              DEFAULT: "var(--accent)",
+              strong: "var(--accent-strong)",
+              fg: "var(--accent-fg)",
+              soft: "var(--accent-soft)",
+              line: "var(--accent-line)",
+            },
+          },
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', '"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', 'Meiryo', 'sans-serif'],
+          },
+          boxShadow: {
+            card: "0 1px 2px oklch(0.5 0.01 95 / 0.04), 0 6px 20px oklch(0.5 0.01 95 / 0.05)",
+          },
+          borderRadius: { xl2: "1rem" },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-bg text-ink antialiased font-sans">
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12 space-y-12">
+
+    <!-- ============ ヘッダー（Z字の起点：左にブランド／右に導線） ============ -->
+    <header class="flex items-center gap-3">
+      <span class="grid place-items-center w-11 h-11 rounded-xl2 bg-accent-soft text-accent-strong ring-1 ring-accent-line">
+        <i data-lucide="chef-hat" class="w-6 h-6"></i>
+      </span>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-ink">co-cook</h1>
+        <p class="text-[13px] text-ink-muted">我が家の好みを学習する、AIメニュー提案</p>
+      </div>
+      <a href="/" class="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium text-ink hover:bg-surface-2 transition">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>アプリに戻る
+      </a>
+    </header>
+
+    <!-- ============ ヒーロー（主役：何ができるか＋主CTA） ============ -->
+    <section class="space-y-5">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent-strong ring-1 ring-accent-line">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>このアプリについて
+      </span>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink leading-tight">
+        使うほど、<span class="text-accent-strong">我が家の味</span>になる<br class="hidden sm:block" />献立アシスタント
+      </h2>
+      <p class="text-[15px] sm:text-base text-ink-muted leading-relaxed max-w-prose">
+        「今日の気分・条件」を入力すると、AI が献立を1案提案します。提案へのフィードバックを溜めて学習させると、
+        あなたの家庭の好みに合わせて提案が少しずつチューニングされていきます。
+      </p>
+      <div class="pt-1">
+        <a href="/" class="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-strong transition">
+          <i data-lucide="sparkles" class="w-[18px] h-[18px]"></i>さっそく提案してもらう
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ 使い方（手順の可視化：番号付きステップ） ============ -->
+    <section class="space-y-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="list-checks" class="w-[18px] h-[18px] text-ink-muted"></i>
+        <h3 class="text-base font-semibold text-ink">使い方は3ステップ</h3>
+      </div>
+
+      <ol class="space-y-3">
+        <!-- step 1 -->
+        <li class="flex items-start gap-4 rounded-xl2 border border-border bg-surface shadow-card p-5">
+          <span class="grid place-items-center w-8 h-8 shrink-0 rounded-full bg-accent-soft text-accent-strong text-sm font-bold ring-1 ring-accent-line">1</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-[18px] h-[18px] text-accent"></i>
+              <h4 class="font-semibold text-ink">提案してもらう</h4>
+            </div>
+            <p class="text-sm text-ink-muted leading-relaxed">
+              気分や手持ちの食材などの条件を書いて送信すると、学習済みの好みを踏まえた献立が1案返ってきます。
+            </p>
+          </div>
+        </li>
+        <!-- step 2 -->
+        <li class="flex items-start gap-4 rounded-xl2 border border-border bg-surface shadow-card p-5">
+          <span class="grid place-items-center w-8 h-8 shrink-0 rounded-full bg-accent-soft text-accent-strong text-sm font-bold ring-1 ring-accent-line">2</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <i data-lucide="message-square-text" class="w-[18px] h-[18px] text-accent"></i>
+              <h4 class="font-semibold text-ink">フィードバックする</h4>
+            </div>
+            <p class="text-sm text-ink-muted leading-relaxed">
+              「美味しかった」「重すぎた」などのクイックボタン、または自由入力で感想を返します。これが学習のもとになります。
+            </p>
+          </div>
+        </li>
+        <!-- step 3 -->
+        <li class="flex items-start gap-4 rounded-xl2 border border-border bg-surface shadow-card p-5">
+          <span class="grid place-items-center w-8 h-8 shrink-0 rounded-full bg-accent-soft text-accent-strong text-sm font-bold ring-1 ring-accent-line">3</span>
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <i data-lucide="brain" class="w-[18px] h-[18px] text-accent"></i>
+              <h4 class="font-semibold text-ink">好みを学習する</h4>
+            </div>
+            <p class="text-sm text-ink-muted leading-relaxed">
+              「我が家の好みを学習する」を押すと、フィードバック済みのログをまとめて要約し、「我が家の好み」に反映します。次の提案から反映されます。
+            </p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 仕組み（手順・流れの可視化：フローダイアグラム） ============ -->
+    <section class="space-y-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="workflow" class="w-[18px] h-[18px] text-ink-muted"></i>
+        <h3 class="text-base font-semibold text-ink">仕組み：フィードバックが「好み」に変わるまで</h3>
+      </div>
+      <p class="text-sm text-ink-muted leading-relaxed max-w-prose">
+        生のログをそのまま貯め込むのではなく、<span class="text-ink font-medium">要約</span>を挟んでから
+        「我が家の好み」に反映します。情報を一方向に流すことで、好みが少しずつ・壊れずに育ちます。
+      </p>
+
+      <!-- フロー：3ノード＋矢印 -->
+      <div class="rounded-xl2 border border-border bg-surface shadow-card p-5 sm:p-7">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-3 sm:gap-2">
+          <!-- ノード1 -->
+          <div class="flex flex-col items-center text-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-4">
+            <i data-lucide="receipt-text" class="w-5 h-5 text-ink-muted"></i>
+            <span class="text-sm font-medium text-ink">提案＋フィードバック</span>
+            <span class="text-[11px] text-ink-faint leading-snug">生ログとして保存</span>
+          </div>
+          <!-- 矢印 -->
+          <div class="flex items-center justify-center text-ink-faint">
+            <i data-lucide="chevron-right" class="hidden sm:block w-5 h-5"></i>
+            <i data-lucide="chevron-down" class="sm:hidden w-5 h-5"></i>
+          </div>
+          <!-- ノード2 -->
+          <div class="flex flex-col items-center text-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-4">
+            <i data-lucide="file-text" class="w-5 h-5 text-ink-muted"></i>
+            <span class="text-sm font-medium text-ink">要約</span>
+            <span class="text-[11px] text-ink-faint leading-snug">1回分を客観的に圧縮</span>
+          </div>
+          <!-- 矢印 -->
+          <div class="flex items-center justify-center text-ink-faint">
+            <i data-lucide="chevron-right" class="hidden sm:block w-5 h-5"></i>
+            <i data-lucide="chevron-down" class="sm:hidden w-5 h-5"></i>
+          </div>
+          <!-- ノード3（着地点：アクセント） -->
+          <div class="flex flex-col items-center text-center gap-2 rounded-xl border border-accent-line bg-accent-soft px-4 py-4">
+            <i data-lucide="notebook-pen" class="w-5 h-5 text-accent-strong"></i>
+            <span class="text-sm font-medium text-accent-strong">我が家の好み</span>
+            <span class="text-[11px] text-accent-strong/80 leading-snug">上書きして最新化</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 「我が家の好み」4カテゴリ（関係・分類の可視化） ============ -->
+    <section class="space-y-5">
+      <div class="flex items-center gap-2">
+        <i data-lucide="notebook-pen" class="w-[18px] h-[18px] text-ink-muted"></i>
+        <h3 class="text-base font-semibold text-ink">学習される「我が家の好み」</h3>
+      </div>
+      <p class="text-sm text-ink-muted leading-relaxed max-w-prose">
+        好みは次の4カテゴリに整理して蓄積されます。アプリ画面の右側でいつでも確認・手動編集できます。
+      </p>
+
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div class="flex items-start gap-3 rounded-xl2 border border-border bg-surface p-4">
+          <i data-lucide="utensils" class="w-[18px] h-[18px] mt-0.5 text-accent shrink-0"></i>
+          <div>
+            <h4 class="text-sm font-semibold text-ink">味の好み</h4>
+            <p class="text-[13px] text-ink-muted leading-relaxed mt-0.5">さっぱり / こってり、好きな味付けの傾向など。</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 rounded-xl2 border border-border bg-surface p-4">
+          <i data-lucide="ban" class="w-[18px] h-[18px] mt-0.5 text-accent shrink-0"></i>
+          <div>
+            <h4 class="text-sm font-semibold text-ink">苦手な食材・NG</h4>
+            <p class="text-[13px] text-ink-muted leading-relaxed mt-0.5">避けたい食材や、提案してほしくない条件。</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 rounded-xl2 border border-border bg-surface p-4">
+          <i data-lucide="heart" class="w-[18px] h-[18px] mt-0.5 text-accent shrink-0"></i>
+          <div>
+            <h4 class="text-sm font-semibold text-ink">お気に入りメニュー</h4>
+            <p class="text-[13px] text-ink-muted leading-relaxed mt-0.5">評判が良かった、また食べたい定番メニュー。</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 rounded-xl2 border border-border bg-surface p-4">
+          <i data-lucide="message-square-quote" class="w-[18px] h-[18px] mt-0.5 text-accent shrink-0"></i>
+          <div>
+            <h4 class="text-sm font-semibold text-ink">提案の伝え方・形式</h4>
+            <p class="text-[13px] text-ink-muted leading-relaxed mt-0.5">文量・前置きの有無・結論先行かどうかなど出力の好み。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 特徴（付随情報・控えめに） ============ -->
+    <section class="space-y-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="info" class="w-[18px] h-[18px] text-ink-faint"></i>
+        <h3 class="text-sm font-semibold text-ink-muted">特徴</h3>
+      </div>
+      <ul class="space-y-2 text-[13px] text-ink-muted">
+        <li class="flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4 text-accent shrink-0"></i>
+          提案・フィードバック・学習が1画面で完結。
+        </li>
+        <li class="flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4 text-accent shrink-0"></i>
+          データは手元のローカル（SQLite）に保存。
+        </li>
+        <li class="flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4 text-accent shrink-0"></i>
+          ログを消しても、学習済みの「我が家の好み」は残ります。
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ 末尾CTA（Z字の終点） ============ -->
+    <section class="rounded-xl2 border border-accent-line bg-accent-soft p-6 text-center space-y-3">
+      <p class="text-sm text-accent-strong">まずは1案、提案してもらいましょう。</p>
+      <a href="/" class="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-strong transition">
+        <i data-lucide="chef-hat" class="w-[18px] h-[18px]"></i>co-cook を使う
+      </a>
+    </section>
+
+  </div>
+
+  <script>
+    lucide.createIcons({ attrs: { "stroke-width": 1.5 } });
+  </script>
+</body>
+</html>
