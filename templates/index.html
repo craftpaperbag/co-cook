@@ -5,124 +5,475 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>co-cook — AIメニュー提案</title>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-800">
-  <div class="max-w-3xl mx-auto px-4 py-8 space-y-8">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      /* neutral 軸（わずかに暖色寄りの低彩度） */
+      --bg:         oklch(0.98 0.006 95);
+      --surface:    oklch(1    0     0);
+      --surface-2:  oklch(0.975 0.006 95);
+      --border:     oklch(0.915 0.008 95);
+      --ink:        oklch(0.30 0.012 95);
+      --ink-muted:  oklch(0.55 0.012 95);
+      --ink-faint:  oklch(0.68 0.010 95);
+      /* accent 1色（セージグリーン・低彩度） */
+      --accent:      oklch(0.55 0.072 155);
+      --accent-strong:oklch(0.47 0.078 155);
+      --accent-fg:   oklch(0.99 0.012 155);
+      --accent-soft: oklch(0.955 0.022 155);
+      --accent-line: oklch(0.86 0.030 155);
+      /* status（彩度を控えめに揃える） */
+      --warning:     oklch(0.70 0.090 80);
+      --warning-soft:oklch(0.96 0.030 80);
+      --danger:      oklch(0.57 0.110 25);
+    }
+    body { font-feature-settings: "palt"; }
+    [data-lucide] { display: inline-block; vertical-align: -0.18em; }
 
-    <header>
-      <h1 class="text-2xl font-bold text-slate-900">🍳 co-cook</h1>
-      <p class="text-sm text-slate-500">我が家の好みを学習する、AIメニュー提案アプリ</p>
+    /* ---- markdown 整形（AI提案文 / 我が家の好み） ---- */
+    .md-body { line-height: 1.7; }
+    .md-body > :first-child { margin-top: 0; }
+    .md-body > :last-child { margin-bottom: 0; }
+    .md-body p { margin: 0.5em 0; }
+    .md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+      font-weight: 700; line-height: 1.4; margin: 1em 0 0.4em;
+    }
+    .md-body h1 { font-size: 1.15em; }
+    .md-body h2 { font-size: 1.08em; }
+    .md-body h3 { font-size: 1.02em; }
+    .md-body ul, .md-body ol { margin: 0.5em 0; padding-left: 1.4em; }
+    .md-body ul { list-style: disc; }
+    .md-body ol { list-style: decimal; }
+    .md-body li { margin: 0.2em 0; }
+    .md-body li::marker { color: var(--accent); }
+    .md-body strong { font-weight: 700; color: var(--ink); }
+    .md-body em { font-style: italic; }
+    .md-body a { color: var(--accent-strong); text-decoration: underline; }
+    .md-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 0.35em;
+      padding: 0.05em 0.35em;
+    }
+    .md-body pre {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 0.6em; padding: 0.8em 1em; overflow-x: auto; margin: 0.6em 0;
+    }
+    .md-body pre code { background: none; border: 0; padding: 0; }
+    .md-body blockquote {
+      border-left: 3px solid var(--accent-line); padding-left: 0.9em;
+      color: var(--ink-muted); margin: 0.6em 0;
+    }
+    .md-body hr { border: 0; border-top: 1px solid var(--border); margin: 0.9em 0; }
+    .md-body table { border-collapse: collapse; margin: 0.6em 0; }
+    .md-body th, .md-body td {
+      border: 1px solid var(--border); padding: 0.35em 0.7em; text-align: left;
+    }
+
+    /* ---- トースト（スクロールしても常に見える固定表示） ---- */
+    #toast {
+      position: fixed; top: 1rem; left: 50%; z-index: 50;
+      transform: translateX(-50%) translateY(-0.5rem);
+      opacity: 0; transition: opacity .3s ease, transform .3s ease;
+      pointer-events: none; max-width: calc(100vw - 2rem);
+    }
+    #toast.toast-show {
+      opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: "var(--bg)",
+            surface: { DEFAULT: "var(--surface)", 2: "var(--surface-2)" },
+            border: "var(--border)",
+            ink: {
+              DEFAULT: "var(--ink)",
+              muted: "var(--ink-muted)",
+              faint: "var(--ink-faint)",
+            },
+            accent: {
+              DEFAULT: "var(--accent)",
+              strong: "var(--accent-strong)",
+              fg: "var(--accent-fg)",
+              soft: "var(--accent-soft)",
+              line: "var(--accent-line)",
+            },
+            warning: { DEFAULT: "var(--warning)", soft: "var(--warning-soft)" },
+            danger: "var(--danger)",
+          },
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', '"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', 'Meiryo', 'sans-serif'],
+          },
+          boxShadow: {
+            card: "0 1px 2px oklch(0.5 0.01 95 / 0.04), 0 6px 20px oklch(0.5 0.01 95 / 0.05)",
+          },
+          borderRadius: { xl2: "1rem" },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-bg text-ink antialiased font-sans">
+
+  {# key → lucide アイコン（エッセンス表示で使用） #}
+  {% set essence_icons = {
+    "flavor_preference": "utensils",
+    "disliked_ingredients": "ban",
+    "favorite_menus": "heart",
+    "presentation_preference": "message-square-quote",
+  } %}
+
+  {# 状態カウント #}
+  {% set pending = unprocessed_logs | length %}
+  {% set ready = unprocessed_logs | selectattr('feedback') | list | length %}
+  {% set learned = ingested_logs | length %}
+
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12 space-y-10">
+
+    <!-- ============ ヘッダー（Z字の起点：左上にブランド） ============ -->
+    <header class="flex items-center gap-3">
+      <span class="grid place-items-center w-11 h-11 rounded-xl2 bg-accent-soft text-accent-strong ring-1 ring-accent-line">
+        <i data-lucide="chef-hat" class="w-6 h-6"></i>
+      </span>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-ink">co-cook</h1>
+        <p class="text-[13px] text-ink-muted">我が家の好みを学習する、AIメニュー提案</p>
+      </div>
     </header>
 
     {% if flash %}
-    <div class="rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 px-4 py-3 text-sm">
-      {{ flash }}
+    <div id="toast" role="status">
+      <div class="flex items-start gap-2.5 rounded-xl border border-accent-line bg-accent-soft px-4 py-3 text-sm text-accent-strong shadow-card">
+        <i data-lucide="check-circle-2" class="w-[18px] h-[18px] mt-px shrink-0"></i>
+        <span>{{ flash }}</span>
+      </div>
     </div>
     {% endif %}
 
-    <!-- 1. メニュー提案フォーム -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <h2 class="text-lg font-semibold mb-3">今日の気分・条件</h2>
-      <form action="/propose" method="post" class="space-y-3">
-        <textarea name="context" rows="3" required
-          placeholder="例: さっぱりしたものが食べたい。残り物の鶏むね肉を使いたい。"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
-        <button type="submit"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg">
-          メニューを提案してもらう
-        </button>
-      </form>
+    <!-- ============ 学習サイクル（手順の可視化＋状態KPI） ============ -->
+    <section aria-label="学習サイクルの状態"
+             class="rounded-xl2 border border-border bg-surface shadow-card px-5 sm:px-7 py-5">
+      <div class="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1 sm:gap-3">
+        <!-- 提案 -->
+        <div class="flex flex-col items-center text-center gap-1">
+          <i data-lucide="sparkles" class="w-5 h-5 text-ink-muted"></i>
+          <span class="text-[11px] sm:text-xs text-ink-muted">提案</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-ink-faint"></i>
+        <!-- フィードバック待ち -->
+        <div class="flex flex-col items-center text-center gap-0.5">
+          <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-bold leading-none {{ 'text-warning' if pending else 'text-ink-faint' }}">{{ pending }}</span>
+            <span class="text-[11px] text-ink-muted">件</span>
+          </div>
+          <span class="text-[11px] sm:text-xs text-ink-muted">フィードバック待ち</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-ink-faint"></i>
+        <!-- 学習済 -->
+        <div class="flex flex-col items-center text-center gap-0.5">
+          <div class="flex items-baseline gap-1">
+            <span class="text-2xl font-bold leading-none text-accent">{{ learned }}</span>
+            <span class="text-[11px] text-ink-muted">件</span>
+          </div>
+          <span class="text-[11px] sm:text-xs text-ink-muted">学習済</span>
+        </div>
+      </div>
     </section>
 
-    <!-- 2. 未処理ログ + フィードバック -->
-    <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">未処理のログ（フィードバック待ち）</h2>
-        <span class="text-xs text-slate-400">{{ unprocessed_logs|length }} 件</span>
-      </div>
+    <!-- ============ 本編：左=作業フロー / 右=学習状態 ============ -->
+    <div class="grid lg:grid-cols-3 gap-8 items-start">
 
-      {% if not unprocessed_logs %}
-      <p class="text-sm text-slate-400">まだ提案がありません。</p>
-      {% endif %}
+      <!-- ===== 左カラム（主役の作業） ===== -->
+      <div class="lg:col-span-2 space-y-8">
 
-      {% for log in unprocessed_logs %}
-      <article class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
-        <div class="text-xs text-slate-400">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
-        <div>
-          <div class="text-xs font-semibold text-slate-500 mb-1">条件</div>
-          <p class="text-sm whitespace-pre-wrap">{{ log.context }}</p>
-        </div>
-        <div>
-          <div class="text-xs font-semibold text-slate-500 mb-1">AIの提案</div>
-          <p class="text-sm whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{{ log.proposed_menu }}</p>
-        </div>
+        <!-- 1. メニュー提案（主CTA） -->
+        <section class="rounded-xl2 border border-border bg-surface shadow-card p-6">
+          <div class="flex items-center gap-2 mb-1">
+            <i data-lucide="sparkles" class="w-[18px] h-[18px] text-accent"></i>
+            <h2 class="text-base font-semibold text-ink">今日の気分・条件</h2>
+          </div>
+          <p class="text-[13px] text-ink-muted mb-4">条件を書くと、学習済みの好みを踏まえて献立を1案提案します。</p>
+          <form action="/propose" method="post" class="space-y-3" id="propose-form">
+            <textarea name="context" rows="3" required id="propose-context"
+              placeholder="例: さっぱりしたものが食べたい。残り物の鶏むね肉を使いたい。"
+              class="w-full rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition"></textarea>
+            <div class="flex items-center gap-3">
+              <button type="submit"
+                class="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-strong transition">
+                <i data-lucide="sparkles" class="w-[18px] h-[18px]"></i>
+                メニューを提案してもらう
+              </button>
+              <span class="text-[11px] text-ink-faint">
+                <kbd class="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-sans">Ctrl</kbd>
+                +
+                <kbd class="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-sans">Enter</kbd>
+                で提案
+              </span>
+            </div>
+          </form>
+        </section>
 
-        {% if log.feedback %}
-        <div class="text-sm text-emerald-700">
-          <span class="font-semibold">フィードバック済:</span> {{ log.feedback }}
-        </div>
+        <!-- 2. フィードバック待ちのログ -->
+        <section class="space-y-4" id="feedback-section" style="scroll-margin-top: 5rem;">
+          <div class="flex items-center gap-2">
+            <i data-lucide="message-square-text" class="w-[18px] h-[18px] text-ink-muted"></i>
+            <h2 class="text-base font-semibold text-ink">フィードバック待ち</h2>
+            {% if pending %}
+            <span class="ml-auto inline-flex items-center rounded-full bg-warning-soft px-2.5 py-0.5 text-xs font-medium text-warning">{{ pending }} 件</span>
+            {% endif %}
+          </div>
+
+          {% if not unprocessed_logs %}
+          <div class="rounded-xl2 border border-dashed border-border bg-surface-2 px-6 py-10 text-center">
+            <i data-lucide="utensils-crossed" class="w-6 h-6 text-ink-faint mx-auto mb-2"></i>
+            <p class="text-sm text-ink-muted">まだ提案がありません。上のフォームから始めましょう。</p>
+          </div>
+          {% endif %}
+
+          {% for log in unprocessed_logs %}
+          <article class="rounded-xl2 border border-border bg-surface shadow-card p-5 space-y-4">
+            <div class="flex items-center gap-1.5 text-xs text-ink-faint">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+              <form action="/delete/{{ log.id }}" method="post" class="ml-auto"
+                    onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。\n（学習済みの「我が家の好み」は変更されません）')">
+                <button type="submit" title="このログを削除"
+                  class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-ink-faint hover:text-danger hover:bg-surface-2 transition">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </form>
+            </div>
+
+            <div class="space-y-1">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">条件</div>
+              <p class="text-sm text-ink whitespace-pre-wrap">{{ log.context }}</p>
+            </div>
+
+            <div class="space-y-1">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-accent-strong">AIの提案</div>
+              <div class="js-md text-sm text-ink rounded-xl border border-accent-line bg-accent-soft p-3.5">{{ log.proposed_menu }}</div>
+            </div>
+
+            {% if log.feedback %}
+            <div class="flex items-start gap-2 rounded-xl bg-surface-2 border border-border px-3.5 py-2.5">
+              <i data-lucide="check" class="w-4 h-4 mt-0.5 text-accent shrink-0"></i>
+              <div class="text-sm text-ink">
+                <span class="font-medium text-ink-muted">フィードバック済</span>
+                <span class="ml-1">{{ log.feedback }}</span>
+              </div>
+            </div>
+            {% else %}
+            <div class="space-y-2.5 pt-3 border-t border-border">
+              <form action="/feedback/{{ log.id }}" method="post" class="flex flex-wrap gap-2">
+                <button type="submit" name="feedback" value="👍 美味しかった / また食べたい"
+                  class="inline-flex items-center gap-1.5 text-sm text-ink border border-border rounded-full px-3.5 py-1.5 hover:bg-accent-soft hover:border-accent-line transition">
+                  <i data-lucide="thumbs-up" class="w-4 h-4"></i>美味しかった</button>
+                <button type="submit" name="feedback" value="重すぎた / もっと軽いものがよい"
+                  class="inline-flex items-center gap-1.5 text-sm text-ink border border-border rounded-full px-3.5 py-1.5 hover:bg-accent-soft hover:border-accent-line transition">
+                  <i data-lucide="leaf" class="w-4 h-4"></i>重すぎた</button>
+                <button type="submit" name="feedback" value="味が好みでなかった"
+                  class="inline-flex items-center gap-1.5 text-sm text-ink border border-border rounded-full px-3.5 py-1.5 hover:bg-accent-soft hover:border-accent-line transition">
+                  <i data-lucide="meh" class="w-4 h-4"></i>好みでない</button>
+              </form>
+              <form action="/feedback/{{ log.id }}" method="post" class="flex gap-2">
+                <input type="text" name="feedback" required
+                  placeholder="自由にフィードバックを入力…"
+                  class="flex-1 rounded-xl border border-border bg-surface-2 px-3.5 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition" />
+                <button type="submit"
+                  class="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-surface-2 transition">
+                  <i data-lucide="send-horizontal" class="w-4 h-4"></i>送信</button>
+              </form>
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </section>
+
+        <!-- 3. 学習（インジェスト） -->
+        <section class="rounded-xl2 border border-border bg-surface shadow-card p-6">
+          <div class="flex items-center gap-2 mb-1">
+            <i data-lucide="graduation-cap" class="w-[18px] h-[18px] text-ink-muted"></i>
+            <h2 class="text-base font-semibold text-ink">好みを学習する</h2>
+          </div>
+          <p class="text-[13px] text-ink-muted mb-4 leading-relaxed">
+            フィードバック済みのログをまとめて要約・反映し、右の「我が家の好み」を更新します。
+          </p>
+          {% if ready %}
+          <div class="flex items-center gap-1.5 mb-4 text-[13px] text-accent-strong">
+            <i data-lucide="circle-check-big" class="w-4 h-4"></i>
+            <span>学習できるログが <span class="font-semibold">{{ ready }}</span> 件あります。</span>
+          </div>
+          {% else %}
+          <div class="flex items-center gap-1.5 mb-4 text-[13px] text-ink-faint">
+            <i data-lucide="info" class="w-4 h-4"></i>
+            <span>フィードバックを送ると学習できるようになります。</span>
+          </div>
+          {% endif %}
+          <form action="/ingest" method="post">
+            <button type="submit"
+              {% if not ready %}disabled{% endif %}
+              class="inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition
+                     {% if ready %}border-accent-line bg-accent-soft text-accent-strong hover:bg-accent hover:text-accent-fg hover:border-accent{% else %}border-border bg-surface-2 text-ink-faint cursor-not-allowed{% endif %}">
+              <i data-lucide="brain" class="w-[18px] h-[18px]"></i>
+              我が家の好みを学習する
+            </button>
+          </form>
+        </section>
+
+        <!-- 5. 処理済ログ（付随・履歴） -->
+        {% if ingested_logs %}
+        <section class="space-y-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="history" class="w-[18px] h-[18px] text-ink-faint"></i>
+            <h2 class="text-sm font-semibold text-ink-muted">学習済みの履歴</h2>
+            <span class="text-xs text-ink-faint">{{ learned }} 件</span>
+          </div>
+          <div class="space-y-2">
+            {% for log in ingested_logs %}
+            <article class="rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm">
+              <div class="flex items-center gap-1.5 text-[11px] text-ink-faint mb-1">
+                <i data-lucide="check" class="w-3.5 h-3.5 text-accent"></i>
+                <span>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} ・ 学習済</span>
+                <form action="/delete/{{ log.id }}" method="post" class="ml-auto"
+                      onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。\n（学習済みの「我が家の好み」は変更されません）')">
+                  <button type="submit" title="このログを削除"
+                    class="inline-flex items-center rounded-lg px-1.5 py-0.5 text-ink-faint hover:text-danger hover:bg-surface transition">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </form>
+              </div>
+              <div class="text-ink-muted whitespace-pre-wrap">{{ log.context }}</div>
+              {% if log.feedback %}<div class="mt-1 text-ink-faint">FB: {{ log.feedback }}</div>{% endif %}
+            </article>
+            {% endfor %}
+          </div>
+        </section>
         {% endif %}
 
-        <form action="/feedback/{{ log.id }}" method="post" class="space-y-2">
-          <div class="flex flex-wrap gap-2">
-            <button type="submit" name="feedback" value="👍 美味しかった / また食べたい"
-              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">👍 美味しかった</button>
-            <button type="submit" name="feedback" value="重すぎた / もっと軽いものがよい"
-              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">😮‍💨 重すぎた</button>
-            <button type="submit" name="feedback" value="味が好みでなかった"
-              class="text-sm border border-slate-300 rounded-full px-3 py-1 hover:bg-slate-100">😕 好みでない</button>
-          </div>
-          <div class="flex gap-2">
-            <input type="text" name="feedback"
-              placeholder="自由にフィードバックを入力…"
-              class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-            <button type="submit"
-              class="bg-slate-800 hover:bg-slate-900 text-white text-sm px-4 py-2 rounded-lg">送信</button>
-          </div>
-        </form>
-      </article>
-      {% endfor %}
-    </section>
-
-    <!-- 3. 学習（インジェスト） -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-      <h2 class="text-lg font-semibold mb-2">学習（インジェスト）</h2>
-      <p class="text-sm text-slate-500 mb-3">
-        フィードバック済の未処理ログをまとめて要約・反映し、「我が家の好み」を更新します。
-      </p>
-      <form action="/ingest" method="post">
-        <button type="submit"
-          class="bg-amber-500 hover:bg-amber-600 text-white font-medium px-5 py-2 rounded-lg">
-          🧠 我が家の好みを学習する
-        </button>
-      </form>
-    </section>
-
-    <!-- 我が家の好みのエッセンス -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-      <h2 class="text-lg font-semibold">我が家の好みのエッセンス</h2>
-      {% for key, label in essence_labels.items() %}
-      <div>
-        <div class="text-xs font-semibold text-slate-500 mb-1">{{ label }}</div>
-        <p class="text-sm whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{{ essences[key] or "（まだ学習されていません）" }}</p>
       </div>
-      {% endfor %}
-    </section>
 
-    <!-- 処理済ログ -->
-    {% if ingested_logs %}
-    <section class="space-y-2">
-      <h2 class="text-lg font-semibold">処理済のログ</h2>
-      {% for log in ingested_logs %}
-      <article class="bg-white/60 rounded-lg border border-slate-200 p-4 text-sm">
-        <div class="text-xs text-slate-400 mb-1">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} ・ ✅ ingested</div>
-        <div class="text-slate-600 whitespace-pre-wrap">{{ log.context }}</div>
-        {% if log.feedback %}<div class="text-emerald-700 mt-1">FB: {{ log.feedback }}</div>{% endif %}
-      </article>
-      {% endfor %}
-    </section>
-    {% endif %}
+      <!-- ===== 右カラム（学習状態：我が家の好み） ===== -->
+      <aside class="lg:sticky lg:top-8">
+        <section class="rounded-xl2 border border-border bg-surface shadow-card p-6 space-y-5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="notebook-pen" class="w-[18px] h-[18px] text-accent"></i>
+            <h2 class="text-base font-semibold text-ink">我が家の好み</h2>
+          </div>
 
+          {% for key, label in essence_labels.items() %}
+          <div class="space-y-1.5" data-essence>
+            <div class="flex items-center gap-1.5 text-[13px] font-medium text-ink-muted">
+              <i data-lucide="{{ essence_icons.get(key, 'dot') }}" class="w-4 h-4 text-ink-faint"></i>
+              {{ label }}
+              <button type="button" class="js-essence-edit ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[12px] text-ink-faint hover:text-accent-strong hover:bg-accent-soft transition" title="編集">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>編集
+              </button>
+            </div>
+
+            <!-- 表示 -->
+            <div class="js-essence-view pl-6">
+              {% if essences[key] %}
+              <div class="js-md text-[13px] text-ink leading-relaxed">{{ essences[key] }}</div>
+              {% else %}
+              <p class="text-[13px] text-ink-faint">まだ学習されていません</p>
+              {% endif %}
+            </div>
+
+            <!-- 編集 -->
+            <form action="/essence/{{ key }}" method="post" class="js-essence-form hidden pl-6 space-y-2">
+              <textarea name="value" rows="5"
+                placeholder="マークダウンの箇条書きで記入できます"
+                class="w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition">{{ essences[key] }}</textarea>
+              <div class="flex items-center gap-2">
+                <button type="submit"
+                  class="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-1.5 text-[13px] font-medium text-accent-fg hover:bg-accent-strong transition">
+                  <i data-lucide="check" class="w-4 h-4"></i>保存
+                </button>
+                <button type="button"
+                  class="js-essence-cancel inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-1.5 text-[13px] font-medium text-ink hover:bg-surface-2 transition">
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
+          {% if not loop.last %}<div class="border-t border-border"></div>{% endif %}
+          {% endfor %}
+        </section>
+      </aside>
+
+    </div>
   </div>
+
+  <script>
+    // ---- markdown 整形（AI提案文 / 我が家の好み） ----
+    // 要素の textContent（エスケープ前の生テキスト）を marked で HTML 化する。
+    if (window.marked) {
+      marked.setOptions({ breaks: true, gfm: true });
+      document.querySelectorAll('.js-md').forEach((el) => {
+        const raw = el.textContent.trim();
+        if (raw) {
+          el.innerHTML = marked.parse(raw);
+          el.classList.add('md-body');
+        }
+      });
+    }
+
+    // ---- Ctrl/Cmd + Enter でメニュー提案を送信 ----
+    const proposeForm = document.getElementById('propose-form');
+    const proposeCtx = document.getElementById('propose-context');
+    if (proposeForm && proposeCtx) {
+      proposeCtx.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (proposeCtx.value.trim()) proposeForm.requestSubmit();
+        }
+      });
+    }
+
+    // ---- 我が家の好み：個別編集トグル ----
+    document.querySelectorAll('[data-essence]').forEach((block) => {
+      const view = block.querySelector('.js-essence-view');
+      const form = block.querySelector('.js-essence-form');
+      const editBtn = block.querySelector('.js-essence-edit');
+      const cancelBtn = block.querySelector('.js-essence-cancel');
+      if (!view || !form || !editBtn) return;
+      const open = () => {
+        view.classList.add('hidden');
+        editBtn.classList.add('hidden');
+        form.classList.remove('hidden');
+        const ta = form.querySelector('textarea');
+        if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      };
+      const close = () => {
+        form.classList.add('hidden');
+        view.classList.remove('hidden');
+        editBtn.classList.remove('hidden');
+      };
+      editBtn.addEventListener('click', open);
+      if (cancelBtn) cancelBtn.addEventListener('click', close);
+    });
+
+    // ---- トースト表示＋提案時のスクロール ----
+    const params = new URLSearchParams(location.search);
+    const toast = document.getElementById('toast');
+    if (toast) {
+      requestAnimationFrame(() => toast.classList.add('toast-show'));
+      setTimeout(() => toast.classList.remove('toast-show'), 4000);
+    }
+    if (params.get('proposed')) {
+      const target = document.getElementById('feedback-section');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // クエリ文字列を除去（リロード時にトースト/スクロールが再発しないように）。
+    if (params.has('flash') || params.has('proposed')) {
+      history.replaceState({}, '', location.pathname);
+    }
+
+    lucide.createIcons({ attrs: { "stroke-width": 1.5 } });
+  </script>
 </body>
 </html>

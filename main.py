@@ -130,7 +130,9 @@ def propose(
     )
     db.add(log)
     db.commit()
-    return redirect_with_flash("新しいメニューを提案しました。")
+    # proposed=1 を付け、GET 側で提案セクションへスクロールさせる。
+    message = quote("新しいメニューを提案しました。")
+    return RedirectResponse(f"/?flash={message}&proposed=1", status_code=303)
 
 
 # ---- 2. フィードバック送信 ------------------------------------------------
@@ -140,8 +142,9 @@ def submit_feedback(
     feedback: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    feedback = feedback.strip()
     log = db.get(MenuLog, log_id)
-    if log is not None and log.status == STATUS_UNPROCESSED:
+    if feedback and log is not None and log.status == STATUS_UNPROCESSED:
         log.feedback = feedback
         db.commit()
     return RedirectResponse("/", status_code=303)
@@ -189,3 +192,41 @@ def ingest(request: Request, db: Session = Depends(get_db)):
         return redirect_with_flash(f"学習に失敗しました: {exc}")
 
     return redirect_with_flash(f"{len(target_logs)} 件のログを学習しました。")
+
+
+# ---- 4. ログの個別削除 ----------------------------------------------------
+@app.post("/delete/{log_id}")
+def delete_log(log_id: str, db: Session = Depends(get_db)):
+    log = db.get(MenuLog, log_id)
+    if log is None:
+        return RedirectResponse("/", status_code=303)
+    # FK 制約を避けるため、紐づくサマリーを先に削除する。
+    summary = db.scalar(
+        select(MenuSummary).where(MenuSummary.log_id == log_id)
+    )
+    if summary is not None:
+        db.delete(summary)
+    db.delete(log)
+    db.commit()
+    # 削除はログのみ。学習済みの「我が家の好み」（エッセンス）には影響しない。
+    return redirect_with_flash(
+        "ログを削除しました。「我が家の好み」は変更されていません。"
+    )
+
+
+# ---- 5. 「我が家の好み」の個別編集 ----------------------------------------
+@app.post("/essence/{key}")
+def update_essence(
+    key: str, value: str = Form(""), db: Session = Depends(get_db)
+):
+    if key not in gemini_service.ESSENCE_KEYS:
+        return RedirectResponse("/", status_code=303)
+    value = value.strip()
+    row = db.get(MenuEssence, key)
+    if row is None:
+        db.add(MenuEssence(key=key, value=value))
+    else:
+        row.value = value
+    db.commit()
+    label = gemini_service.ESSENCE_KEYS[key]
+    return redirect_with_flash(f"「{label}」を更新しました。")
