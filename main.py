@@ -208,7 +208,10 @@ def delete_log(log_id: str, db: Session = Depends(get_db)):
         db.delete(summary)
     db.delete(log)
     db.commit()
-    return redirect_with_flash("ログを削除しました。")
+    # 削除はログのみ。学習済みの「我が家の好み」（エッセンス）には影響しない。
+    return redirect_with_flash(
+        "ログを削除しました。「我が家の好み」は変更されていません。"
+    )
 
 
 # ---- 5. 「我が家の好み」の個別編集 ----------------------------------------

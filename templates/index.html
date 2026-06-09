@@ -240,7 +240,7 @@
               <i data-lucide="clock" class="w-3.5 h-3.5"></i>
               <span>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
               <form action="/delete/{{ log.id }}" method="post" class="ml-auto"
-                    onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。')">
+                    onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。\n（学習済みの「我が家の好み」は変更されません）')">
                 <button type="submit" title="このログを削除"
                   class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-ink-faint hover:text-danger hover:bg-surface-2 transition">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -339,7 +339,7 @@
                 <i data-lucide="check" class="w-3.5 h-3.5 text-accent"></i>
                 <span>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} ・ 学習済</span>
                 <form action="/delete/{{ log.id }}" method="post" class="ml-auto"
-                      onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。')">
+                      onsubmit="return confirm('このログを削除しますか？この操作は取り消せません。\n（学習済みの「我が家の好み」は変更されません）')">
                   <button type="submit" title="このログを削除"
                     class="inline-flex items-center rounded-lg px-1.5 py-0.5 text-ink-faint hover:text-danger hover:bg-surface transition">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
